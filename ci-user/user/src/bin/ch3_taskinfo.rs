@@ -32,6 +32,15 @@ pub fn main() -> usize {
     let t4 = get_time() as usize;
     assert_eq!(0, task_info(&info));
     let t5 = get_time() as usize;
+    // println!("============t2 - t1{}", t2 - t1);
+    // println!("============t3 - t1{}", t3 - t1);
+    // println!("============{}", info.time);
+    // println!("info syscall_times: {} {} {} {} {}",
+    //          info.syscall_times[SYSCALL_GETTIMEOFDAY],
+    //          info.syscall_times[SYSCALL_TASK_INFO],
+    //          info.syscall_times[SYSCALL_WRITE],
+    //          info.syscall_times[SYSCALL_YIELD],
+    //          info.syscall_times[SYSCALL_EXIT]);
     assert!(5 <= info.syscall_times[SYSCALL_GETTIMEOFDAY]);
     assert_eq!(2, info.syscall_times[SYSCALL_TASK_INFO]);
     assert_eq!(2, info.syscall_times[SYSCALL_WRITE]);
