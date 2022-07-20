@@ -17,6 +17,8 @@ mod task;
 use crate::config::{MAX_APP_NUM, MAX_SYSCALL_NUM};
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
+use crate::task::task::TaskStatistics;
+use crate::timer::get_time_us;
 use lazy_static::*;
 pub use switch::__switch;
 pub use task::{TaskControlBlock, TaskStatus};
@@ -54,6 +56,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            task_statistics: TaskStatistics::default(),
         }; MAX_APP_NUM];
         for (i, t) in tasks.iter_mut().enumerate().take(num_app) {
             t.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -125,6 +128,11 @@ impl TaskManager {
             inner.current_task = next;
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
+
+            if inner.tasks[current].task_statistics.start_time == 0 {
+                inner.tasks[current].task_statistics.start_time = get_time_us();
+            }
+
             drop(inner);
             // before this, we should drop local variables that must be dropped manually
             unsafe {
@@ -137,6 +145,24 @@ impl TaskManager {
     }
 
     // LAB1: Try to implement your function to update or get task info!
+    fn get_task_info(&self) -> TaskControlBlock {
+        let inner = self.inner.exclusive_access();
+        inner.tasks[inner.current_task]
+    }
+
+    fn update_task_info(&self, syscall_id: usize) {
+        let mut inner = self.inner.exclusive_access();
+        let cur = inner.current_task;
+        inner.tasks[cur].task_statistics.syscall_times[syscall_id] += 1;
+    }
+}
+
+pub fn get_task_info() -> TaskControlBlock  {
+    TASK_MANAGER.get_task_info()
+}
+
+pub fn update_task_info(syscall_id: usize) {
+    TASK_MANAGER.update_task_info(syscall_id)
 }
 
 /// Run the first task in task list.
